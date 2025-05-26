@@ -5,6 +5,7 @@ from openai import AzureOpenAI
 import re
 from fastapi import FastAPI,HTTPException
 from pydantic import BaseModel
+import time
 
 app = FastAPI()
 
@@ -17,14 +18,20 @@ class DatabaseConn:
             "?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
         )
     def connect_to_db(self):
+        retries = 0
+        max_retries = 5
         
-        try:
-            engine = create_engine(self.sqlalchemy_url)
-            with engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-            return engine
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"❌ Database connection failed: {str(e)}")
+        while retries < max_retries:
+            try:
+                engine = create_engine(self.sqlalchemy_url)
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                return engine
+            except SQLAlchemyError as e:
+                retries += 1
+                if retries == max_retries:
+                    raise HTTPException(status_code=400, detail=f"❌ Database connection failed after {max_retries} attempts: {str(e)}")
+                time.sleep(1)  # Wait 1 second before retrying
 
     def question_db(self, query):
             try:
