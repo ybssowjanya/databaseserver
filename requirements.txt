@@ -7,3 +7,4 @@ SQLAlchemy
 pyodbc
 jsonref
 gunicorn
+azure-storage-blob
